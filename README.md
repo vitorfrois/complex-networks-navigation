@@ -11,3 +11,4 @@ pip install -r requirements.txt
 ```
 and you are all set.
 
+Run `deactivate` when finished.

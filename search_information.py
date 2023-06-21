@@ -71,10 +71,5 @@ class SearchInformation:
         self.search_information_matrix = self.compute_search_information_matrix(probability_shortest_path_matrix)
         self.average_search_information = np.mean(self.search_information_matrix)
 
-    def average_search_information(self):
+    def get_average_search_information(self):
         return self.average_search_information
-    
-G = nx.barabasi_albert_graph(10, 1)
-g_info = SearchInformation(G)
-g_info.compute_average_search_information()
-print(g_info.average_search_information)

@@ -10,54 +10,58 @@ def get_biggest_component(G):
     G = G.subgraph(Gcc[0])
     return G
 
+def singleSourceShortesPaths(G,s):
+    sP = {}
+    preds = nx.predecessor(G,s)
+    for t in G.nodes():
+        sP[t] = list(nx.algorithms.shortest_paths.generic._build_paths_from_predecessors([s], t, preds))
+    return sP
+
+def allPairsAllShortestPaths(G):
+    for s in G.nodes():
+        yield s, singleSourceShortesPaths(G, s)
+
 class SearchInformation:
     def __init__(self, G):
         G = get_biggest_component(G)
-        G = nx.convert_node_labels_to_integers(G)
+        G = nx.convert_node_labels_to_integers(G, first_label=0)
         self.G = G
 
     def compute_probability_shortest_path_matrix(self):
         G = self.G
         N = len(G)
         M_prob_shortest_path = np.zeros((N,N))
-        # all shortest paths
-        nodes = list(G.nodes)
-        TPs = []
 
-        for s in nodes: # start node
-            nodes_except_s = nodes.copy()
-            nodes_except_s.remove(s)
+        allPairsSP = dict(allPairsAllShortestPaths(G))
+        degrees = dict(G.degree)
 
-            for t in nodes_except_s: # end node
-                ks = G.degree[s] # grau de s
-                kt = G.degree[t] # grau de t
+        for s in allPairsSP.keys():
+            for t in allPairsSP[s].keys():
+                if s == t:
+                    M_prob_shortest_path[s][t] = 1
+                    continue
 
-                # optimization: already have 't' to 's' probability_path
-                if M_prob_shortest_path[t-1][s-1] > 1e10:
-                    M_prob_shortest_path[s-1][t-1] = ks * (1/kt) * M_prob_shortest_path[t-1][s-1]
-                    break
+                ks = degrees[s] # grau de s
+                kt = degrees[t] # grau de t
 
-                paths_i_j = list(nx.all_shortest_paths(G,s,t))
+                shortestPaths = allPairsSP[s][t]
 
                 TP = 0 # total probabilitie to follow any shortest path
 
-                ks = G.degree[s] # grau de s
-
-                for path in paths_i_j: # for each shortest path
+                for path in shortestPaths: # for each shortest path
                     # probabilitie to follow each path
                     P = 1/ks
 
-                    for j in path: # for each node 'j' in the way
-                        kj = G.degree[j]
-                        # if that node has mode than one neighbor
+                    for j in path[:-1]: # for each node 'j' in the way
+                    # with j counting all nodes on the path until the last node before the target t is reached. 
+                        kj = degrees[j]
+                        
                         if kj > 1:
                             P *= 1/(kj - 1)
 
                     TP += P
 
-                M_prob_shortest_path[s-1][t-1] = TP
-
-        np.fill_diagonal(M_prob_shortest_path,1) # Probability to go from node to itself is 1 
+                M_prob_shortest_path[s][t] = TP
 
         return M_prob_shortest_path
 

@@ -5,3 +5,4 @@ pandas
 osmnx
 jupyter
 contextily
+sklearn

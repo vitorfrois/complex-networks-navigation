@@ -26,8 +26,13 @@ class SearchInformation:
         G = get_biggest_component(G)
         G = nx.convert_node_labels_to_integers(G, first_label=0)
         self.G = G
+        self.average_search_information = None
+        self.probability_shortest_path_matrix = None
 
-    def compute_probability_shortest_path_matrix(self):
+    def get_probability_shortest_path_matrix(self):
+        if self.probability_shortest_path_matrix is not None:
+            return self.probability_shortest_path_matrix
+
         G = self.G
         N = len(G)
         M_prob_shortest_path = np.zeros((N,N))
@@ -68,12 +73,12 @@ class SearchInformation:
     def compute_search_information_matrix(self, probability_shortest_path_matrix):
         #Search information for each pair of nodes
         S = (-1)* np.log2(probability_shortest_path_matrix)
-        return S
-
-    def compute_average_search_information(self):
-        probability_shortest_path_matrix = self.compute_probability_shortest_path_matrix()
-        self.search_information_matrix = self.compute_search_information_matrix(probability_shortest_path_matrix)
-        self.average_search_information = np.mean(self.search_information_matrix)
+        return S        
 
     def get_average_search_information(self):
-        return self.average_search_information
+        if self.average_search_information is None:
+            self.probability_shortest_path_matrix = self.get_probability_shortest_path_matrix()
+            self.search_information_matrix = self.compute_search_information_matrix(self.probability_shortest_path_matrix)
+            self.average_search_information = np.mean(self.search_information_matrix)
+        return self.average_search_information 
+

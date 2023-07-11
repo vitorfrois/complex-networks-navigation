@@ -1,43 +1,46 @@
 import networkx as nx
 
-def toDualGraphWithContinuity(G):
-  addedNodes = {
-  }
 
-  correspondence = {}
+class StreetContinuity:
+    @staticmethod
+    def get_dual_graph(G):
+        addedNodes = {
+        }
 
-  nG = nx.graph.Graph()
+        correspondence = {}
 
-  for edge in G.edges(data=True):
-      n1, n2, data = edge
+        nG = nx.graph.Graph()
 
-      if n1 not in correspondence:
-          correspondence[n1] = {}
-      if n2 not in correspondence:
-          correspondence[n2] = {}
+        for edge in G.edges(data=True):
+            n1, n2, data = edge
 
-      osmids = [data['osmid']] if type(data['osmid']) != list else data['osmid']
-      names = [data.get('name', None)] if type(data.get('name', None)) != list else data.get('name', None)
+            if n1 not in correspondence:
+                correspondence[n1] = {}
+            if n2 not in correspondence:
+                correspondence[n2] = {}
 
-      for osmid, name in zip(osmids, names):
-          if osmid not in addedNodes:
-              x = G.nodes[n1]['x'] + (G.nodes[n2]['x'] - G.nodes[n1]['x']) / 2
-              y = G.nodes[n1]['y'] + (G.nodes[n2]['y'] - G.nodes[n1]['y']) / 2
-              lat = G.nodes[n1]['lat'] + (G.nodes[n2]['lat'] - G.nodes[n1]['lat']) / 2
-              lon = G.nodes[n1]['lon'] + (G.nodes[n2]['lon'] - G.nodes[n1]['lon']) / 2
+            osmids = [data['osmid']] if type(data['osmid']) != list else data['osmid']
+            names = [data.get('name', None)] if type(data.get('name', None)) != list else data.get('name', None)
 
-              nG.add_node(osmid, name=name, x=x, y=y, lat=lat, lon=lon)
-              addedNodes[osmid] = True
+            for osmid, name in zip(osmids, names):
+                if osmid not in addedNodes:
+                    x = G.nodes[n1]['x'] + (G.nodes[n2]['x'] - G.nodes[n1]['x']) / 2
+                    y = G.nodes[n1]['y'] + (G.nodes[n2]['y'] - G.nodes[n1]['y']) / 2
+                    lat = G.nodes[n1]['lat'] + (G.nodes[n2]['lat'] - G.nodes[n1]['lat']) / 2
+                    lon = G.nodes[n1]['lon'] + (G.nodes[n2]['lon'] - G.nodes[n1]['lon']) / 2
 
-          correspondence[n1][osmid] = True
-          correspondence[n2][osmid]  = True
-          
-  for node in G.nodes():
-      osmids = list(correspondence.get(node, {}).keys())
+                    nG.add_node(osmid, name=name, x=x, y=y, lat=lat, lon=lon)
+                    addedNodes[osmid] = True
 
-      for i in range(len(osmids)):
-          for j in range(i+1, len(osmids)):
-              nG.add_edge(osmids[i], osmids[j])
-  
-  return nG
+                correspondence[n1][osmid] = True
+                correspondence[n2][osmid]  = True
+                
+        for node in G.nodes():
+            osmids = list(correspondence.get(node, {}).keys())
+
+            for i in range(len(osmids)):
+                for j in range(i+1, len(osmids)):
+                    nG.add_edge(osmids[i], osmids[j])
+        
+        return nG
 

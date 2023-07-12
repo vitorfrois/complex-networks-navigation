@@ -1,5 +1,31 @@
+
 #!/usr/bin/env python
 # coding: utf-8
+
+def degreeDistribution(x):
+  maxDeg = np.max(x)
+  degValues = np.arange(0,maxDeg+1)
+  Pdeg = np.zeros(maxDeg+1)
+  for deg in x:
+    Pdeg[deg] += 1
+  Pdeg /= np.sum(Pdeg)
+  return degValues, Pdeg
+
+def getShannonEntropy(x):
+  degValues, Pdeg = degreeDistribution(x)
+  H = 0
+  for p in Pdeg:
+    if(p > 0):
+      H = H - p * np.log2(p)
+  return H
+
+def get_biggest_component(G):
+  G = G.to_undirected()
+  G.remove_edges_from(nx.selfloop_edges(G))
+  Gcc = sorted(nx.connected_components(G), key=len, reverse=True)
+  G = G.subgraph(Gcc[0])
+  return G
+
 
 # ## Classificação de Redes Complexas
 
@@ -70,34 +96,23 @@ def plot_attacks(G, attack_type):
 
 
 class Graph():
-  def __init__(self, graph, name):
-    self.G = graph
+  def __init__(self, graph, name, all_measures=False):
+    self.G = get_biggest_component(graph)
     self.name = name
     self.deg_list = [self.G.degree(n) for n in self.G.nodes()]
     self.nodes = nx.number_of_nodes(self.G)
     self.edges = nx.number_of_edges(self.G)
     self._density = nx.density(self.G)
-    try:
-      self._da_coeff = nx.degree_assortativity_coefficient(self.G)
-    except:
-      print("Could not compute degree assortativity")
-      self._da_coeff = 0
-    if(nx.is_connected(self.G)):
-      self._spl_mean = nx.average_shortest_path_length(self.G)
-    else:
-      closeness_centr = nx.closeness_centrality(self.G)
-      self._spl_mean = stat.mean(closeness_centr)
-    nodes_clustering = nx.clustering(self.G)
-    self._c_mean = stat.mean(nodes_clustering.values())
-    self._c_stdev = stat.stdev(nodes_clustering.values())
     self._dg_mean = stat.mean(self.deg_list)
     self._dg_stdev = stat.stdev(self.deg_list)
-    self.dg_median = stat.median(self.deg_list)
-    betweenness = nx.betweenness_centrality(self.G)
-    self.betweenness_sequence = list(betweenness.values())
-    self._bt_mean = stat.mean(self.betweenness_sequence)
-    self._bt_stdev = stat.stdev(self.betweenness_sequence)
-    self._bt_median = stat.median(self.betweenness_sequence)
+    self._dg_median = stat.median(self.deg_list)
+    self._shannon_entropy = getShannonEntropy(self.deg_list)
+
+    # betweenness = nx.betweenness_centrality(self.G)
+    # self.betweenness_sequence = list(betweenness.values())
+    # self._bt_mean = stat.mean(self.betweenness_sequence)
+    # self._bt_stdev = stat.stdev(self.betweenness_sequence)
+    # self._bt_median = stat.median(self.betweenness_sequence)
 
   def bgm(self):
     print(self.name) 
@@ -267,14 +282,10 @@ class GraphCompare:
         self.m = int(self.k/2)
         self.graph_list = []
         for i in range(6):
-          self.graph_list.append(Graph(nx.erdos_renyi_graph(self.nodes, self.p), "a. Erdos-Renyi"))
-          self.graph_list.append(Graph(nx.watts_strogatz_graph(self.nodes, self.k, 0.01), "b. Watts-Strogatz"))
-          self.graph_list.append(Graph(nx.watts_strogatz_graph(self.nodes, self.k, 0.2), "c. Watts-Strogatz"))
-          self.graph_list.append(Graph(nx.watts_strogatz_graph(self.nodes, self.k, 0.5), "d. Watts-Strogatz"))
+          self.graph_list.append(Graph(nx.erdos_renyi_graph(self.nodes, self.p), "a. Erdos-Renyi"))          
+          self.graph_list.append(Graph(nx.watts_strogatz_graph(self.nodes, self.k, 0.2), "c. Watts-Strogatz p=0.2"))
           self.graph_list.append(Graph(nx.barabasi_albert_graph(self.nodes, self.m), "e. Barabasi-Albert"))
           self.graph_list.append(Graph(nx.waxman_graph(self.nodes, alpha=0.05), "f. Waxman"))
-          self.graph_list.append(Graph(nx.waxman_graph(self.nodes, beta=0.3), "g. Waxman"))
-          self.graph_list.append(Graph(nx.waxman_graph(self.nodes), "h. Waxman"))
               
         self.new_list = self.graph_list.copy()
         self.new_list.append(Graph(G, self.name))
